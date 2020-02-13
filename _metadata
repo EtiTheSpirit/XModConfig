@@ -1,0 +1,10 @@
+{
+  "author" : "Xan the Dragon",
+  "description" : "^reset;Allows mods to leverage custom config files saved per-character, as well as extra features if unsafe lua is enabled.\n\n^red;WARNING: ENABLING UNSAFE LUA IS ^#FF0000;INCREDIBLY DANGEROUS ^red;AND CAN RESULT IN ^#FF0000;IRREVERSABLE DAMAGE TO YOUR COMPUTER^red;.\n\n^orange;Enabling unsafe Lua grants mods ^red;full access to the system shell^orange;, which only spells bad news if you have any malicious mods. ^red;For instance, ^#FF0000;a single command can wipe your entire hard drive^red;. ^orange;You have been warned!^reset;\n\nIf unsafe Lua is enabled, a directory will be created in ^cornflowerblue;AppData/Roaming/.StarboundModConfigs/ModNameHere^reset; (on Windows) and ^cornflowerblue;~/.StarboundModConfigs/ModNameHere^reset; (on OSX/Linux), allowing for config access from any lua file in the game, and global configs across all characters.\n\n^orange;As mentioned above, enabling this feature is ^red;not recommended^orange;. By enabling it, you acknowledge the potential damages you may suffer.",
+  "friendlyName" : "XModCfg ^orange;API^reset;",
+  "name" : "XModCfg_API",
+  "path" : ".",
+  "tags" : "Miscellaneous",
+  "includes" : ["XModCfg_RootSys"],
+  "version" : "1.0.0"
+}

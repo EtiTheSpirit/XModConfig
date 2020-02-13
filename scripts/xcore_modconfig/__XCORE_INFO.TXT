@@ -1,0 +1,4 @@
+This is an incomplete package of XCORE which is a script utility library I designed some time ago. It has some neat bells and whistles.
+https://github.com/XanTheDragon/XanScriptCore
+
+This specific folder has been renamed so that any alternate installs of XanScriptCore don't interfere.
