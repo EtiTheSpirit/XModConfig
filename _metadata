@@ -1,0 +1,10 @@
+{
+  "author" : "Xan the Dragon",
+  "description" : "^reset;This is the ROOT SYSTEM for XModConfig. This implements a global Starbound .config file that serves as a registry point for mods that employ use of XModConfig.",
+  "friendlyName" : "XModCfg ^red;Root Systems^reset;",
+  "name" : "XModCfg_RootSys",
+  "path" : ".",
+  "tags" : "Miscellaneous",
+  "priority" : -9999,
+  "version" : "1.0.0"
+}
