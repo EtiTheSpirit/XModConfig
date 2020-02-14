@@ -20,5 +20,5 @@ function init()
 		end
 	end
 	
-	message.setHandler("isThisAPlayer", localHandler(function () return true end))
+	message.setHandler("isThisMyPlayer", localHandler(function () return true end))
 end

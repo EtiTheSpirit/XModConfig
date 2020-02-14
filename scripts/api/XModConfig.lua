@@ -26,8 +26,8 @@
 				player XModConfig.Player [readonly]
 					A reference to the current active player. This will be nil if ReferenceType is not 0.
 					
-				entity XModConfig.Entity [readonly]
-					A reference to the current active player's entity. This will be nil if ReferenceType is not 1.
+				int XModConfig.EntityId [readonly]
+					A reference to the current active player's entity ID. This will be nil if ReferenceType is not 1.
 					
 				int ReferenceType [readonly]
 					Primarily used internally, but exposed publicly as a "just in case". 
@@ -248,22 +248,46 @@ local function InitializationSetup(modName, configContainer)
 			configContainer.ReferenceType = 0
 			
 		-- Second case: Does a reference to entity exist (and the world)?
-		elseif world ~= nil and entity ~= nil then
-			print("World & Entity exists. Testing if the current entity is a player...")
-			local eType = world.entityType(entity.id())
-			print(eType)
-			local promise = world.sendEntityMessage(entity.id(), "isThisAPlayer")
-			if promise:succeeded() then
-				print("It is! Using an indirect reference.")
-				XModConfig.Entity = entity
-				XModConfig.ReferenceType = 1
-				configContainer.Entity = entity
-				configContainer.ReferenceType = 1
-			else
-				error("Cannot reference configs from this context. The entity and world globals exist, but the entity global does not correspond to a player.")
+		elseif world ~= nil then
+			print("World exists!")
+			if entity then
+				print("A reference to entity exists too!")
+				local promise = world.sendEntityMessage(entity.id(), "isThisMyPlayer")
+				if promise:succeeded() then
+					print("It is! Using an indirect reference.")
+					XModConfig.EntityId = entity.id()
+					XModConfig.ReferenceType = 1
+					configContainer.EntityId = entity.id()
+					configContainer.ReferenceType = 1
+					return
+				end
+			end
+			
+			-- If the code makes it here, entity is nil OR the entity wasn't the player.
+			print("Attempting to get a player entity by going through the available players.")
+			if world.players == nil then
+				error("here lies world.players -- he ran fast, and ceased to exist. (Config errored and the player could not be located)")
 				XModConfig.ReferenceType = 2
 				configContainer.ReferenceType = 2
+				return
 			end
+			local playerIds = world.players()
+			
+			for index = 1, #playerIds do
+				local promise = world.sendEntityMessage(entity.id(), "isThisMyPlayer")
+				if promise:succeeded() then
+					print("Found me!")
+					XModConfig.EntityId = entity.id()
+					XModConfig.ReferenceType = 1
+					configContainer.EntityId = entity.id()
+					configContainer.ReferenceType = 1
+					return
+				end
+			end
+			
+			error("Cannot reference configs from this context. Could not find the player from entity ID alone, since no applicable ID could be located.")
+			XModConfig.ReferenceType = 2
+			configContainer.ReferenceType = 2
 			
 		-- a
 		else
@@ -348,7 +372,7 @@ local function Set(self, key, value)
 	if self.ReferenceType == 0 then
 		player.setProperty(self.ModName .. key, value)
 	elseif XModConfig.ReferenceType == 1 then
-		world.sendEntityMessage(entity.id(), "setProperty", self.ModName .. key, value)
+		world.sendEntityMessage(self.EntityId, "setProperty", self.ModName .. key, value)
 	else
 		error("Can't use configs from this context!")
 	end
@@ -365,7 +389,7 @@ local function Get(self, key, defaultValue)
 	if self.ReferenceType == 0 then
 		data = player.getProperty(self.ModName .. key)
 	elseif XModConfig.ReferenceType == 1 then
-		data = world.sendEntityMessage(entity.id(), "getProperty", self.ModName .. key):result()
+		data = world.sendEntityMessage(self.EntityId, "getProperty", self.ModName .. key):result()
 	else
 		error("Can't use configs from this context!")
 	end
