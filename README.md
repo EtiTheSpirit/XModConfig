@@ -12,7 +12,7 @@ An API allowing starbound mods to be configured.
 You already go through enough crap when it comes to making Starbound mods work. I've got no interest in making that job any harder. It's (ideally) got good enough documentation to make the process of learning to use + implementing this API easy Please do not hesitate to create an issue requesting better documentation if confusion or difficulty arises!
 
 ## Easy setup!
-Implementing configs into your mods is as easy as writing a simple patch file, and writing code to handle known config values. The code does the rest of the work for you. All you need to worry about is handling config flags in your code.
+Implementing configs into your mods is as easy as writing a simple patch file, and writing code to handle known config values. The code does the rest of the work for you. All you need to worry about is handling config flags in your code. You can get a template of the patch file [HERE (click here)](https://github.com/XanTheDragon/XModConfig/blob/RootSys/XMODCONFIG.config.patch-example)
 
 ## Compatible with both Lua modes -- safe and unsafe -- with added features for unsafe Lua!
 
