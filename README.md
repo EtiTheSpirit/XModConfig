@@ -5,10 +5,10 @@ An API allowing starbound mods to be configured. Yes, it's real.
 
 # Features
 
-### Simple and straightforward API.
+### Simple and straightforward API!
 You already go through enough [erchius waste] when it comes to making Starbound mods work. I've got no interest in making that job any harder. It's (ideally) got good documentation to make the process of learning to use + implementing this API easy, but if you are confused / get stuck at any point, please do not hesitate to create an issue requesting better documentation! I'm more than willing to do little tweaks to ensure the usage experience is as smooth as possible.
 
-### Easy setup
+### Easy setup!
 Implementing configs into your mods is as easy as writing a simple patch file, and writing code to handle known config values. The code does the rest of the work for you. All you need to worry about is handling config flags in your code. I do the rest of the work.
 
 ### Compatible with both Lua modes -- safe and unsafe -- with added features for unsafe Lua!
