@@ -7,6 +7,7 @@
 		"path": "/ModsWithConfig/YOUR-MOD-NAME-HERE", 
 		
 		"value": {
+			"FriendlyName" : "My mod's friendly name here",
 			"ConfigInfo" : [ // Yes, capital C.
 				{
 					// [Required] The key is the config key saved to file. Cannot be null.
