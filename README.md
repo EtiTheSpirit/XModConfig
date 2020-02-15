@@ -23,7 +23,7 @@ Implementing configs into your mods is as easy as writing a simple patch file, a
 Unsafe Lua is incredibly dangerous! It is best to treat it similarly to a firearm; never assume it is safe, and always practice extreme discretion and care when using it.
 - **Never** enable unsafe Lua unless you have **manually checked to see that none of your mods contain malicious code**, and/or you are **willing to risk potential catastrophic and irreversible damage to your computer** should a mod employ the use of malicious code. **You have been warned!**
 
-For your own safety, although I can personally assure you this mod does not employ malicious code, you should still check yourself because this is a serious security concern for everyone. Please be safe!
+For your own safety, I will not be showing how to enable this feature. Any damage caused by other mods is not my responsibility. By enabling unsafe Lua, you acknowledge the potential dangers! Although I can personally assure you this mod does not employ malicious code, you should still check yourself because this is a serious security concern for everyone. Please be safe!
 
 ***
 
