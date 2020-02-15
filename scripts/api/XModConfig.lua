@@ -126,6 +126,12 @@ local function LateSpecifyLoggingOverrides()
 	print, warn, error, assertwarn, assert = MakeIntoContextualLogger("[XModConfig]") -- This overrides the locals specified up top rather than the entire environment.
 end
 
+-- Populates the bare-minimum values required for external access if instantiation is not used (e.g. we're referencing the mod list)
+local function BareBonesSetup()
+	if sb then LateSpecifyLoggingOverrides() end
+	XModConfig.IsUnsafeLuaEnabled = pcall(function () local _ = io.read ~= nil end)
+end
+
 -- Alias function to automatically error out for invalid types.
 local function MandateType(value, targetType, paramName, nullable)
 	if nullable and value == nil then return end
@@ -551,11 +557,16 @@ end
 -- Returns a list of mods that patch /XMODCONFIG.config and add their name + configurable properties to the configurable mods list.
 -- This table has an index added to it called "ModList" which is a list of all the registered mod names.
 function XModConfig:GetConfigurableMods()
+	-- Make sure we're good to go first.
+	-- This function populates the logging overrides and also sets XModConfig.IsUnsafeLuaEnabled
+	BareBonesSetup()
+	
 	local cfg = root.assetJson("/XMODCONFIG.config")
 	local keys = {}
 	for key in pairs(cfg.ModsWithConfig) do
 		table.insert(keys, key)
-		if print then print(string.format("Added %s to mod registry.", key)) end -- Sometimes this might be called before init which is supposed to be safe.
+		if print then print(string.format("Added %s to mod registry.", key)) end 
+		-- ^ Sometimes this might be called before init which is supposed to be safe for this function, so worst case scenario it's not and the condition up top fails.
 	end
 	cfg.ModList = keys
 	return cfg
