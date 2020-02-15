@@ -18,7 +18,8 @@ Implementing configs into your mods is as easy as writing a simple patch file, a
 
 ***
 
-**⚠️ WARNING / DISCLAIMER ⚠️:** Unsafe Lua is incredibly dangerous! It is best to treat it similarly to a firearm; never assume it is safe, and always practice extreme discretion and care when using it.
+**⚠️ WARNING ⚠️** 
+Unsafe Lua is incredibly dangerous! It is best to treat it similarly to a firearm; never assume it is safe, and always practice extreme discretion and care when using it.
 - **Never** enable unsafe Lua unless you have **manually checked to see that all of your mods do not contain malicious code**, and/or you are **willing to risk catastrophic and irreversible damage to your computer** should a mod employ the use of malicious code. **You have been warned!**
 
 ***
