@@ -555,7 +555,7 @@ function XModConfig:GetConfigurableMods()
 	local keys = {}
 	for key in pairs(cfg.ModsWithConfig) do
 		table.insert(keys, key)
-		print(string.format("Added %s to mod registry.", key))
+		if print then print(string.format("Added %s to mod registry.", key)) end -- Sometimes this might be called before init which is supposed to be safe.
 	end
 	cfg.ModList = keys
 	return cfg
