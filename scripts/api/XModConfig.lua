@@ -47,8 +47,13 @@
 					This will also error if the current context that this is called from does not contain a reference to either: player, or world&entity (both are needed if player is not available)
 					
 					
-					
-					
+				table GetConfigurableMods()
+					Gets the array of configurable mods from the patched XMODCONFIG.config file.
+					This table has a unique structure that looks a bit like this:
+					{
+						["ModsWithConfig"] = {...} -- JSON patches here.
+						["ModList"] = {} -- All of the keys in ModsWithConfig.
+					}
 					
 					
 			Properties of ConfigContainer (Inherits XModConfig properties)
