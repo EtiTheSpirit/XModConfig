@@ -479,12 +479,19 @@ function XModConfig:Instantiate(modName)
 			MandateNotType(configData.default, "table", "default", true)
 			MandateType(configData.enforceType, "boolean", "enforceType", true)
 			MandateType(configData.limits, "table", "limits", true)
-			if configData.Limits ~= nil then
-				local len = #configData.Limits
+			if configData.limits ~= nil then
+				local len = #configData.limits
 				assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.")
-				MandateType(configData.Limits[1], "number", "limits[1]", false)
-				MandateType(configData.Limits[2], "number", "limits[2]", false)
-				MandateType(configData.Limits[3], "boolean", "limits[3]", true)
+				
+				-- A bit of a hack but...
+				if configData.limits[1] == "inf" then configData.limits[1] = math.huge end
+				if configData.limits[1] == "-inf" then configData.limits[1] = -math.huge end
+				if configData.limits[2] == "inf" then configData.limits[2] = math.huge end
+				if configData.limits[2] == "-inf" then configData.limits[2] = -math.huge end
+				
+				MandateType(configData.limits[1], "number", "limits[1]", false)
+				MandateType(configData.limits[2], "number", "limits[2]", false)
+				MandateType(configData.limits[3], "boolean", "limits[3]", true)
 			end
 			MandateType(configData.display, "table", "display", false)
 			MandateType(configData.display.name, "string", "display.name", false)
