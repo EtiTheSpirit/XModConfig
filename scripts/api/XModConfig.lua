@@ -69,11 +69,6 @@
 					If defaultValue is specified, it will return defaultValue if the key does not have a value
 					if setIfDoesntExist is true, this will call Set(key, defaultValue) if the data was nil. This will do nothing if defaultValue is nil.
 					
-					If something called Set with a primitive value (namely where __containerflag is true in this table), this method will return the first index of said table.
-					For instance:
-					Set("asdfg", 69)
-					Get("asdfg") -- will return 69 instead of a table containing 69 at index 1 ({69}).
-					
 				void Remove(string key)
 					Removes the specified config key from the saved config data. This is identical to calling Set(key, nil)
 					
