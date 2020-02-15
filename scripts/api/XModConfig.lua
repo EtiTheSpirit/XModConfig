@@ -295,7 +295,8 @@ local function InitializationSetup(modName, configContainer)
 			if world.players == nil then
 				-- This nil check is here because world.md says this exists but it's always nil when I try to reference it.
 				-- I had someone tell me it doesn't exist.
-				-- Then I had someone else telling me it does exist and it's me "misusing it" being the reason that it's not working. However the hell you misuse a function by calling it is beyond me.
+				-- Then I had someone else telling me it does exist and it's me "misusing it" being the reason that it's not working.
+				-- However the hell you misuse a function by calling it is beyond me, unless it was some insane method of saying "you're calling a function that doesn't exist".
 				-- Both sides were stingy about it so I'm just gonna do it this way. I'm a solid 60% sorry if this kind of code bothers you. It'd bother me too.
 				
 				error("here lies world.players -- he ran fast, and ceased to exist. (Config errored and the player could not be located)")
@@ -333,6 +334,7 @@ local function InitializationSetup(modName, configContainer)
 			-- WHAT IS EXISTENCE?!
 			-- HELP!!!!
 			-- WHO IS PLAYER?!
+			-- WHERE IS WORLD!?
 			-- WHO AM I?!
 			-- *WHAT* AM I?!
 			-- https://youtu.be/bz92R5ptZRE?t=70
