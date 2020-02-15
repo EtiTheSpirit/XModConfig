@@ -1,0 +1,52 @@
+[
+	{ 
+		"op": "add", 
+		
+		// This is VERY important! When you call XModConfig:Instantiate(), the specified name must be IDENTICAL to the mod name specified here, or else it will error!
+		
+		"path": "/ModsWithConfig/YOUR-MOD-NAME-HERE", 
+		
+		"value": {
+			"ConfigInfo" : [ // Yes, capital C.
+				{
+					// [Required] The key is the config key saved to file. Cannot be null.
+					"key" : "myConfigKey1",
+					
+					// [Required] default is the default value. Cannot be null, and cannot be a json array (no [] or {})
+					// Arrays should be stored as strings with a known separator, and you should handle this separator yourself.
+					"default" : 50,
+					
+					// [Optional] If true, the value type of `myConfigKey` is going to be enforced to be identical to the type of `default`. XModConfig:Set() will error if the value is set to a different type.
+					// If this is true, the config menu may also use a more appropriate GUI element, for instance boolean types will see a checkbox instead of a textbox to enter a custom value.
+					"enforceType" : true,
+					
+					// [Optional] If the value of "default" is a number, and the value input to the config key is a number, this is the limit of said numeric value.
+					// If enforceType is false and the value input is not a number, this will do nothing.
+					// Index #1 is the minimum, and index #2 is the maximum. This means number can be anywhere from 0 to 100, 0 and 100 included.
+					// An optional third index can be specified as true. If a third index is added and its value is equal to true, the value will be forced to be a whole number.
+					// put "inf" to represent infinity (and "-inf" to represent -infinity)
+					"limits": [0, 100, true]
+					
+					// [Required] Display data for this config key in the config menu.
+					"display" : {
+						// [Required] The name of the setting to display. This should be a human-friendly name that briefly describes what the setting does in a few words.
+						"name" : "My Configuration Key #1",
+						
+						// [Optional] A more detailed explanation 
+						"description" : "This is the first configuration value that will show up in the config list! It needs to be a number between or including 0 and 100, and must be a whole number."
+					}
+				},
+				
+				{
+					"key" : "asdf",
+					"default" : true,
+					"enforceType" : true,
+					"display" : {
+						"name" : "ass-duff-moo-vee",
+						"description" : "stop ffs"
+					}
+				}
+			]
+		}
+	}
+]
