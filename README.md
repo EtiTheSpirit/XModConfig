@@ -23,6 +23,8 @@ Implementing configs into your mods is as easy as writing a simple patch file, a
 Unsafe Lua is incredibly dangerous! It is best to treat it similarly to a firearm; never assume it is safe, and always practice extreme discretion and care when using it.
 - **Never** enable unsafe Lua unless you have **manually checked to see that none of your mods contain malicious code**, and/or you are **willing to risk potential catastrophic and irreversible damage to your computer** should a mod employ the use of malicious code. **You have been warned!**
 
+For your own safety, although I can personally assure you this mod does not employ malicious code, you should still check yourself because this is a serious security concern for everyone. Please be safe!
+
 ***
 
 Are you a private individual who works on your own mods for you and your group of friends? Pissed off that starbound doesn't let you reference the player from any context and use logical sides (client/server) to streamline what you can and can't reference? Me too. Enabling Unsafe Lua enables the mod to create a global config file that can be referenced from any Lua context.
