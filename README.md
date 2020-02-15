@@ -27,6 +27,6 @@ For your own safety, although I can personally assure you this mod does not empl
 
 ***
 
-Are you a private individual who works on your own mods for you and your group of friends? Pissed off that starbound doesn't let you reference the player from any context and use logical sides (client/server) to streamline what you can and can't reference? Me too. Enabling Unsafe Lua enables the mod to create a global config file that can be referenced from any Lua context.
+Are you a private individual who works on your own mods for you and your group of friends? Disgruntled that Starbound doesn't let you reference the player from any context and use logical sides (client/server) to streamline what you can and can't reference? Me too. Enabling Unsafe Lua allows the mod to create a global config file that can be referenced from any Lua context.
  - This creates `%appdata%\.StarboundModConfigs\YOUR-MOD-NAME-HERE\config.cfg` on Windows
  - This creates `~\.StarboundModConfigs\YOUR-MOD-NAME-HERE\config.cfg` on Unix and OS-X.
