@@ -62,18 +62,20 @@
 			Methods of ConfigContainer:
 				void Set(string key, Variant value)
 					Sets the specified config key to contain the specified value via calling player.setProperty
-					If the value is a table, it will be set to the specified table.
-					If the value is not a table, it will be wrapped like so: {__containerflag = true, [1] = value}
 				
-				Variant Get(string key, Variant defaultValue)
+				Variant Get(string key, [Variant defaultValue = nil], [bool setIfDoesntExist = false])
 					Gets the value associated with the specified config key via calling player.getProperty
 					If this key does not have an associated value or is equal to empty json ({}), it will return nil.
-					If defaultValue is specified, it will return defaultValue if the key does not have a value or returns empty json.
+					If defaultValue is specified, it will return defaultValue if the key does not have a value
+					if setIfDoesntExist is true, this will call Set(key, defaultValue) if the data was nil. This will do nothing if defaultValue is nil.
 					
 					If something called Set with a primitive value (namely where __containerflag is true in this table), this method will return the first index of said table.
 					For instance:
 					Set("asdfg", 69)
 					Get("asdfg") -- will return 69 instead of a table containing 69 at index 1 ({69}).
+					
+				void Remove(string key)
+					Removes the specified config key from the saved config data. This is identical to calling Set(key, nil)
 					
 --]]
 require("/scripts/api/json.lua")
@@ -99,6 +101,15 @@ end
 --------------------------------
 ---- CORE UTILITY FUNCTIONS ----
 --------------------------------
+
+-- Format params: methodName, ctorName
+local ERR_NOT_INSTANCE = "Cannot statically invoke method '%s' - It is an instance method. Call it on an instance of this class created via %s"
+
+-- Format params: paramName, expectedType, actualType
+local ERR_INVALID_TYPE = "Invalid type for JSON parameter '%s' (Expected %s, got %s)"
+
+-- Format params: paramName, expectedType, actualType
+local ERR_INVALID_TYPE_NULLABLE = "Invalid type for nullable JSON parameter '%s' (Expected nil or %s, got %s)"
 
 -- A late require to the LoggingOverride that employs use of sb.loginfo.
 -- This is done because requiring XModConfig can wreak havoc on a chain of init functions that just obliterates everything.
@@ -141,6 +152,20 @@ local function VerifyModName(modName)
 	end
 	
 	return true
+end
+
+-- Alias function to automatically error out for invalid types.
+local function MandateType(value, targetType, paramName, nullable)
+	if nullable and value == nil then return end
+	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE or ERR_INVALID_TYPE
+	assert(type(value) == targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType, type(value)))
+end
+
+-- Alias function to automatically error out for invalid types, except it *can't* be the specified type
+local function MandateNotType(value, targetType, paramName, nullable)
+	if nullable and value == nil then return end
+	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE or ERR_INVALID_TYPE
+	assert(type(value) ~= targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType, type(value)))
 end
 
 -- Credit: https://stackoverflow.com/a/40195356/5469033
@@ -217,6 +242,7 @@ local function InitializationSetupIfLuaIsUnsafe(modName, configContainer)
 		file:close()
 	end
 	XModConfig.ReferenceType = 3
+	configContainer.ReferenceType = 3
 	print("Successfully populated JSON.")
 end
 
@@ -273,6 +299,11 @@ local function InitializationSetup(modName, configContainer)
 			end
 			local playerIds = world.players()
 			
+			-- This method is particularly yucky imo, and I'd like to get a better method if possible.
+			-- Effectively this relies on two facts:
+			-- #1: this is a localHandler
+			-- #2: localHandlers have instant returns, networked calls do not
+			-- The basic gist is that I can call this event on my player. All other players will have this message registered, just locally, so it should not succeed unless it's explicitly called on my own entity.
 			for index = 1, #playerIds do
 				local promise = world.sendEntityMessage(entity.id(), "isThisMyPlayer")
 				if promise:succeeded() then
@@ -343,7 +374,7 @@ local function SetUnsafe(self, key, value)
 end
 
 -- Get config for unsafe lua. Directly reads from a json file.
-local function GetUnsafe(self, key, defaultValue)
+local function GetUnsafe(self, key, defaultValue, setIfDoesntExist)
 	if type(key) ~= "string" then
 		error("Config keys must be strings.")
 		return
@@ -351,10 +382,18 @@ local function GetUnsafe(self, key, defaultValue)
 	ReadJSONFromFile(self) -- This is needed for sync behavior.
 	
 	local jsonData = self.RawJSON[key]
-	if defaultValue ~= nil and type(defaultValue) ~= type(jsonData) then
+	if jsonData ~= nil and defaultValue ~= nil and type(defaultValue) ~= type(jsonData) then
 		warn(string.format("Type mismatch for defaultValue and stored json data in key %s. This could cause unwanted behavior!", key))
 	end
+	if jsonData == nil and defaultValue ~= nil and setIfDoesntExist then
+		SetUnsafe(self, key, defaultValue)
+	end
 	return self.RawJSON[key] or defaultValue
+end
+
+-- Remove config for unsafe lua.  Directly writes to a json file.
+local function RemoveUnsafe(self, key)
+	SetUnsafe(self, key, nil)
 end
 
 -- Set config data for safe Lua. Uses player.setProperty
@@ -379,7 +418,7 @@ local function Set(self, key, value)
 end
 
 -- Get config data for safe Lua. Uses player.getProperty
-local function Get(self, key, defaultValue)
+local function Get(self, key, defaultValue, setIfDoesntExist)
 	if type(key) ~= "string" then
 		error("Config keys must be strings.")
 		return
@@ -394,10 +433,18 @@ local function Get(self, key, defaultValue)
 		error("Can't use configs from this context!")
 	end
 	
-	if defaultValue ~= nil and type(defaultValue) ~= type(data) then
+	if data ~= nil and defaultValue ~= nil and type(defaultValue) ~= type(data) then
 		warn(string.format("Type mismatch for defaultValue and stored json data in key %s. This could cause unwanted behavior!", key))
 	end
+	if data == nil and defaultValue ~= nil and setIfDoesntExist then
+		Set(self, key, defaultValue)
+	end
 	return data or defaultValue
+end
+
+-- Remove config data for safe Lua. Uses player.setProperty
+local function Remove(self, key)
+	Set(self, key, nil)
 end
 
 ------------------------------------------------
@@ -414,28 +461,89 @@ function XModConfig:Instantiate(modName)
 
 
 	-- dumby block head stopper tron 3000
-	if not VerifyModName(modName) then
-		error("The specified mod name is invalid. Cannot create a configuration reference.")
-		return
-	end
+	assert(VerifyModName(modName), "The specified mod name is invalid. Cannot create a configuration reference.")
 	
 	local object = {
 		ModName = modName
 	}
 	InitializationSetup(modName, object)
 	setmetatable(object, XModConfig)
+	
+	-- Late data population: Set up the default data / load the existing data.
+	if self.ReferenceType ~= 2 then	
+		-- Let's populate our data.
+		local cfgMods = self:GetConfigurableMods().ModsWithConfig
+		local config = cfgMods[modName]
+		assert(config ~= nil, string.format("Could not locate mod name %s in list of configurable mods. Did you specify the correct name? Did you remember to create XMODCONFIG.config.patch?", modName))
+			
+		for index = 1, #config.ConfigInfo do
+			local configData = config.ConfigInfo[index]
+			-- Did I ever tell you what the definition of insanity is?
+			-- MandateType(value, requiredType, paramName, nullable)
+			MandateType(configData.key, "string", "key", false)
+			MandateNotType(configData.default, "table", "default", true)
+			MandateType(configData.enforceType, "boolean", "enforceType", true)
+			MandateType(configData.limits, "table", "limits", true)
+			if configData.Limits ~= nil then
+				local len = #configData.Limits
+				assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.")
+				MandateType(configData.Limits[1], "number", "limits[1]", false)
+				MandateType(configData.Limits[2], "number", "limits[2]", false)
+				MandateType(configData.Limits[3], "boolean", "limits[3]", true)
+			end
+			MandateType(configData.display, "table", "display", false)
+			MandateType(configData.display.name, "string", "display.name", false)
+			MandateType(configData.display.description, "string", "display.description", true)
+			
+			-- If we've made it here, config data is OK!
+			
+			local value = object:Get(configData.key, configData.default, true)
+			if type(value) ~= type(configData.default) and configData.default ~= nil and configData.enforceType == true then
+				warn("Type mismatch for the stored config data in key %s and the default value in the mod's config data specification! Since this key enforces its type, the config data under this key will be set to the default value.")
+				object:Set(configData.key, configData.default)
+			end
+			
+			if type(value) == "number" then
+				-- This is a number, is it compliant with limits?
+				if configData.limits then
+					local min = configData.limits[1]
+					local max = configData.limits[2]
+					local round = configData.limits[3]
+					if min and max then
+						local oldValue = value
+						if round == true then
+							value = math.min(value + 0.5)
+						end
+						if value < min or value > max then
+							value = math.max(min, math.min(max, value))
+							warn("Value is out of range! It is equal to %d, but the min and max are %d and %d. It will be clamped to %s", oldValue, min, max, value)
+							object:Set(configData.key, value)
+						end
+					end
+				end
+			end
+		end
+	end
+	
 	return object
 end
 
--- Returns a list of mods that patch /XMODCONFIG.config and add their name to the configurable mods list.
+-- Returns a list of mods that patch /XMODCONFIG.config and add their name + configurable properties to the configurable mods list.
+-- This table has an index added to it called "ModList" which is a list of all the registered mod names.
 function XModConfig:GetConfigurableMods()
 	local cfg = root.assetJson("/XMODCONFIG.config")
-	return cfg.ModsWithConfig
+	local keys = {}
+	for key in pairs(cfg.ModsWithConfig) do
+		table.insert(keys, key)
+		print(string.format("Added %s to mod registry.", key))
+	end
+	cfg.ModList = keys
+	return cfg
 end
 
 -- Set the specified key to the specified value.
 function XModConfig:Set(key, value)
-	assert(getmetatable(self) == XModConfig, "Cannot statically invoke method Set. Call it on an instance created via XModConfig:Instantiate()")
+	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Set", "XModConfig::Instantiate"))
 	if self.IsUnsafeLuaEnabled then
 		SetUnsafe(self, key, value)
 	else
@@ -444,11 +552,21 @@ function XModConfig:Set(key, value)
 end
 
 -- Get the value stored in the specified key, or defaultValue if it is not specified (or nil if defaultValue isnt specified)
-function XModConfig:Get(key, defaultValue)
-	assert(getmetatable(self) == XModConfig, "Cannot statically invoke method Get. Call it on an instance created via XModConfig:Instantiate()")
+function XModConfig:Get(key, defaultValue, setIfDoesntExist)
+	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Get", "XModConfig::Instantiate"))
 	if self.IsUnsafeLuaEnabled then
-		return GetUnsafe(self, key, defaultValue)
+		return GetUnsafe(self, key, defaultValue, setIfDoesntExist == true)
 	else
-		return Get(self, key, defaultValue)
+		return Get(self, key, defaultValue, setIfDoesntExist == true)
+	end
+end
+
+-- Remove the specified config key from the saved config data. Will do nothing if the key doesn't exist.
+function XModConfig:Remove(key)
+	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Remove", "XModConfig::Instantiate"))
+	if self.IsUnsafeLuaEnabled then
+		RemoveUnsafe(self, key)
+	else
+		Remove(self, key)
 	end
 end
