@@ -11,14 +11,12 @@ An API allowing starbound mods to be configured.
 ## Simple and straightforward API!
 You already go through enough crap when it comes to making Starbound mods work. I've got no interest in making that job any harder. It's (ideally) got good enough documentation to make the process of learning to use + implementing this API easy Please do not hesitate to create an issue requesting better documentation if confusion or difficulty arises!
 
-***
-
 ## Easy setup!
 Implementing configs into your mods is as easy as writing a simple patch file, and writing code to handle known config values. The code does the rest of the work for you. All you need to worry about is handling config flags in your code.
 
-***
-
 ## Compatible with both Lua modes -- safe and unsafe -- with added features for unsafe Lua!
+
+***
 
 **WARNING / DISCLAIMER:** Unsafe Lua is incredibly dangerous! It is best to treat it similarly to a firearm; never assume it is safe, and always practice extreme discretion and care when using it.
 - **Never** enable unsafe Lua unless you have **manually checked to see that all of your mods do not contain malicious code**, and/or you are **willing to risk catastrophic and irreversible damage to your computer** should a mod employ the use of malicious code. **You have been warned!**
