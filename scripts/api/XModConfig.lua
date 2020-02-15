@@ -106,6 +106,12 @@ local ERR_INVALID_TYPE = "Invalid type for JSON parameter '%s' (Expected %s, got
 -- Format params: paramName, expectedType, actualType
 local ERR_INVALID_TYPE_NULLABLE = "Invalid type for nullable JSON parameter '%s' (Expected nil or %s, got %s)"
 
+-- Format params: paramName, notAllowedType
+local ERR_INVALID_TYPE_INVERSE = "Invalid type for JSON parameter '%s' (This parameter explicitly does not support the use of %s)"
+
+-- Format params: paramName, notAllowedType
+local ERR_INVALID_TYPE_NULLABLE_INVERSE = "Invalid type for nullable JSON parameter '%s' (This parameter explicitly does not support the use of %s)"
+
 -- A late require to the LoggingOverride that employs use of sb.loginfo.
 -- This is done because requiring XModConfig can wreak havoc on a chain of init functions that just obliterates everything.
 -- Said destruction was caused by sb not existing and it throwing an error.
@@ -113,6 +119,20 @@ local function LateSpecifyLoggingOverrides()
 	if ENV_HAS_LOG_OVERRIDE then return end -- Specified in the override lua
 	require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print, warn, error, assert, and assertwarn
 	print, warn, error, assertwarn, assert = MakeIntoContextualLogger("[XModConfig]") -- This overrides the locals specified up top rather than the entire environment.
+end
+
+-- Alias function to automatically error out for invalid types.
+local function MandateType(value, targetType, paramName, nullable)
+	if nullable and value == nil then return end
+	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE or ERR_INVALID_TYPE
+	assert(type(value) == targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType, type(value)))
+end
+
+-- Alias function to automatically error out for invalid types, except it *can't* be the specified type
+local function MandateNotType(value, targetType, paramName, nullable)
+	if nullable and value == nil then return end
+	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE_INVERSE or ERR_INVALID_TYPE_INVERSE
+	assert(type(value) ~= targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType))
 end
 
 -- Verifies the integrity of the mod name to ensure that it is safe for all filesystems.
@@ -147,20 +167,6 @@ local function VerifyModName(modName)
 	end
 	
 	return true
-end
-
--- Alias function to automatically error out for invalid types.
-local function MandateType(value, targetType, paramName, nullable)
-	if nullable and value == nil then return end
-	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE or ERR_INVALID_TYPE
-	assert(type(value) == targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType, type(value)))
-end
-
--- Alias function to automatically error out for invalid types, except it *can't* be the specified type
-local function MandateNotType(value, targetType, paramName, nullable)
-	if nullable and value == nil then return end
-	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE or ERR_INVALID_TYPE
-	assert(type(value) ~= targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType, type(value)))
 end
 
 -- Credit: https://stackoverflow.com/a/40195356/5469033
@@ -287,6 +293,11 @@ local function InitializationSetup(modName, configContainer)
 			-- If the code makes it here, entity is nil OR the entity wasn't the player.
 			print("Attempting to get a player entity by going through the available players.")
 			if world.players == nil then
+				-- This nil check is here because world.md says this exists but it's always nil when I try to reference it.
+				-- I had someone tell me it doesn't exist.
+				-- Then I had someone else telling me it does exist and it's me "misusing it" being the reason that it's not working. Whatever "misusing" means. Maybe they want me to do world["players"] lol
+				-- Both sides were stingy about it so I'm just gonna do it this way. I'm a solid 60% sorry if this kind of code bothers you. It'd bother me too.
+				
 				error("here lies world.players -- he ran fast, and ceased to exist. (Config errored and the player could not be located)")
 				XModConfig.ReferenceType = 2
 				configContainer.ReferenceType = 2
