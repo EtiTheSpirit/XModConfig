@@ -83,11 +83,10 @@ local TEMPLATE_CONFIG_ENTRY_LABEL = {
 }
 
 -- Regex for a textbox that allows numbers only
-local REGEX_NUMBERS_ONLY = "\\d+"
+local REGEX_NUMBERS_ONLY = "(-?\\d+)"
 
 -- Regex for a textbox that allows numbers and a period for point.
--- TO DO: Localization edits to allow , as well? EDIT: Yes
-local REGEX_NUMBERS_AND_DECIMALS = "(\\d+(\\.{1}|,{1})\\d+)"
+local REGEX_NUMBERS_AND_DECIMALS = "(-?\\d+(\\.?|,?)\\d*)"
 
 -- Toggle button text color if the text is true
 local COLOR_TEXT_TRUE = "#11FF11"
@@ -411,7 +410,8 @@ function TextBoxFinished(widgetName, widgetData)
 		local max = limits[2] or math.huge
 		local wholeNumOnly = limits[3] == true
 		
-		local number = tonumber(text:gsub(",", "."))
+		local newText = text:gsub(",", ".")
+		local number = tonumber(newText)
 		if not number then error("Number textbox had something that couldn't be turned into a number!") return end
 		
 		if wholeNumOnly then
