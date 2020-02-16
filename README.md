@@ -8,7 +8,7 @@ An API allowing starbound mods to be configured.
 
 ## On Steam
 * https://steamcommunity.com/sharedfiles/filedetails/?id=1998921194
-* steam://url/CommunityFilePage/1998921194
+* [steam://url/CommunityFilePage/1998921194](https://xansangrysteamredirect.blogspot.com?steamUrl=steam://url/CommunityFilePage/1998921194)
 
 # Features
 
