@@ -542,7 +542,7 @@ function XModConfig:Instantiate(modName)
 						end
 						if value < min or value > max then
 							value = math.max(min, math.min(max, value))
-							warn("Value is out of range! It is equal to %d, but the min and max are %d and %d. It will be clamped to %s", oldValue, min, max, value)
+							warn("Value is out of range! It is equal to %s, but the min and max are %s and %s. It will be clamped to %s", tostring(oldValue), tostring(min), tostring(max), tostring(value))
 							object:Set(configData.key, value)
 						end
 					end
