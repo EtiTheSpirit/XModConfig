@@ -5,6 +5,11 @@
 -- It enforces a strict standard and will provide modders with the necessary information to debug incorrect use of this mod.
 
 --[[
+
+	NEW UPDATE: DO NOT REQUIRE THIS MODULE DIRECTLY UNLESS YOU REQUIRE YOUR USERS TO GET THIS MOD.
+		If you want to optionally use XModConfig, get this script, which allows you to conditionally require it based on if it exists or not.
+		https://github.com/XanTheDragon/XModConfig/blob/DEVELOPER_RESOURCES/scripts/xmodcfg_util/XModConfigProxy.lua
+
 	API:
 		require("scripts/api/XModConfig")
 		Configuration = XModConfig:Instantiate("Your unique mod name here")
@@ -13,12 +18,13 @@
 		IMPORTANT NOTICE: This object is NOT equal to any other configs! It is simply populated with the same data, so if you call Set("foo", "bar") in one script and Get("foo") in another, it will still return "bar" due to it
 		directly reading and writing to and from player data (or raw config json if unsafe lua is enabled).
 		
-		This constructor will error if:
+		This constructor will error AND RETURN NIL (MEANING YOU NEED TO TEST THIS) if:
 			- You do not specify a name as a string
 			- The string is empty
 			- The string is only whitespace
 			- The string violates filesystem name rules. The allowed characters are a-z A-Z 0-9 -+_, and the maximum length is 32.
 			- It is called before sb exists in the current context (It must be called after the current environment's init() function finishes.)
+			- XModConfig is not installed properly due to missing components (as of writing, this only means RootSys isn't installed)
 		
 		This object is called a ConfigContainer.
 		
@@ -30,7 +36,7 @@
 					A reference to the current active player's entity ID. This will be nil if ReferenceType is not 1.
 					
 				int ReferenceType [readonly]
-					Primarily used internally, but exposed publicly as a "just in case". 
+					If this is -1, XModConfig is not installed properly and one or more components could not load (as of writing, this only means RootSys isn't installed)						
 					If this is 0, XModConfig.Player was acquired via a direct reference to the player global.
 					If this is 1, XModConfig.Player could not be acquired, but world & entity globals exist and entity references the player.
 					If this is 2, XModConfig.Player could not be acquired, and if entity exists, it's not the player. Config will be unusable here if this is the case.
@@ -48,6 +54,7 @@
 					
 					
 				table GetConfigurableMods()
+					WARNING: If ReferenceType is -1, this will return NIL, NOT A TABLE.
 					Gets the array of configurable mods from the patched XMODCONFIG.config file.
 					This table has a unique structure that looks a bit like this:
 					{
@@ -89,7 +96,7 @@ local print, warn, error, assertwarn, assert, tostring; -- Specify these as loca
 require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print, warn, error, assert, and assertwarn
 
 XModConfig = {}
-XModConfig.IsUnsafeLuaEnabled = pcall(os.execute) 
+XModConfig.IsUnsafeLuaEnabled = pcall(os.execute)
 XModConfig.__index = XModConfig
 XModConfig.__newindex = function (tbl, key, value) 
 	if key ~= "RawJSON" then 
@@ -103,9 +110,9 @@ end
 -- 2a: any person that's setting things in XModConfig OR in a ConfigContainer is violating standards.
 -- 2b: I've completely been run outta fucks to give when it comes to performance issues that occur from people are doing the one thing they *aren't* supposed to be doing
 
---------------------------------
----- CORE UTILITY FUNCTIONS ----
---------------------------------
+-------------------
+---- CONSTANTS ----
+-------------------
 
 -- Format params: methodName, ctorName
 local ERR_NOT_INSTANCE = "Cannot statically invoke method '%s' - It is an instance method. Call it on an instance of this class created via %s"
@@ -121,6 +128,28 @@ local ERR_INVALID_TYPE_INVERSE = "Invalid type for JSON parameter '%s' (This par
 
 -- Format params: paramName, notAllowedType
 local ERR_INVALID_TYPE_NULLABLE_INVERSE = "Invalid type for nullable JSON parameter '%s' (This parameter explicitly does not support the use of %s)"
+
+-- Error for if this script exists but it's not installed properly due to root systems missing.
+local ERR_ROOTSYS_NOT_INSTALLED = "XModConfig is not installed properly! It is currently missing the following required components: XModCfg_RootSys (Root Systems)"
+
+--------------------------------
+---- CORE UTILITY FUNCTIONS ----
+--------------------------------
+
+-- Checks to see if all of the necessary components of XModConfig are installed.
+local function CheckForInstallStatus()
+	-- If this is true, RootSys is installed.
+	local successfullyGotSBConfig = pcall(function ()
+		root.assetJson("/XMODCONFIG.config")
+	end)
+	
+	if not successfullyGotSBConfig then
+		XModConfig.ReferenceType = -1
+	end
+	
+	-- At the moment, this is the only required library for the API.
+	return successfullyGotSBConfig
+end
 
 -- Alias function to automatically error out for invalid types.
 local function MandateType(value, targetType, paramName, nullable)
@@ -464,15 +493,18 @@ end
 
 -- Instantiate new config object. The specified mod name must be the same as the mod name patched into XMODCONFIG.config
 function XModConfig:Instantiate(modName)
-	print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]")
 	if sb == nil and LUA_ERROR ~= nil then
 		LUA_ERROR("ERROR: Cannot call instantiate() before a script's init function has been called! (Global var sb does not exist.)")
 		return
 	end
-
-
+	print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]")
+	
 	-- dumby block head stopper tron 3000
-	assert(VerifyModName(modName), "The specified mod name is invalid. Cannot create a configuration reference.")
+	if not assert(VerifyModName(modName), "The specified mod name is invalid. Cannot create a configuration reference.") then return end
+	
+	-- New catch case: Is the thing installed properly?
+	-- This populates XModConfig.ReferenceType as well.
+	if not assert(CheckForInstallStatus(), ERR_ROOTSYS_NOT_INSTALLED) then return end
 	
 	local object = {
 		ModName = modName
@@ -485,7 +517,7 @@ function XModConfig:Instantiate(modName)
 		-- Let's populate our data.
 		local cfgMods = self:GetConfigurableMods().ModsWithConfig
 		local config = cfgMods[modName]
-		assert(config ~= nil, string.format("Could not locate mod name %s in list of configurable mods. Did you specify the correct name? Did you remember to create XMODCONFIG.config.patch?", modName))
+		if not assert(config ~= nil, string.format("Could not locate mod name %s in list of configurable mods. Did you specify the correct name? Did you remember to create XMODCONFIG.config.patch?", modName)) then return end
 		
 		-- https://youtu.be/vXOUp0y9W4w?t=478
 		-- https://youtu.be/vXOUp0y9W4w?t=478
@@ -500,12 +532,13 @@ function XModConfig:Instantiate(modName)
 			MandateType(configData.enforceType, "boolean", "enforceType", true)
 			if configData.enforceType == true and configData.default == nil then
 				error(string.format("Type enforcement for config key %s is on, but it doesn't have a default value to get this type from!", configData.key))
+				return
 			end
 			
 			MandateType(configData.limits, "table", "limits", true)
 			if configData.limits ~= nil then
 				local len = #configData.limits
-				assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.")
+				if not assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.") then return end
 				
 				-- A bit of a hack but...
 				if configData.limits[1] == "inf" then configData.limits[1] = math.huge end
@@ -558,6 +591,11 @@ end
 -- This table has an index added to it called "ModList" which is a list of all the registered mod names.
 function XModConfig:GetConfigurableMods()
 	-- Make sure we're good to go first.
+	if self.ReferenceType == -1 or not CheckForInstallStatus() then
+		error(ERR_ROOTSYS_NOT_INSTALLED)
+		return
+	end
+	
 	if sb then print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]") end
 	
 	local cfg = root.assetJson("/XMODCONFIG.config")
@@ -573,6 +611,7 @@ end
 
 -- Set the specified key to the specified value.
 function XModConfig:Set(key, value)
+	-- Doesn't need rootsys sanity check because of the line literally right after this comment (it requires an instance, which won't be given if it's not installed properly)
 	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Set", "XModConfig::Instantiate"))
 	if self.IsUnsafeLuaEnabled then
 		SetUnsafe(self, key, value)
@@ -583,6 +622,7 @@ end
 
 -- Get the value stored in the specified key, or defaultValue if it is not specified (or nil if defaultValue isnt specified)
 function XModConfig:Get(key, defaultValue, setIfDoesntExist)
+	-- Doesn't need rootsys sanity check because of the line literally right after this comment (it requires an instance, which won't be given if it's not installed properly)
 	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Get", "XModConfig::Instantiate"))
 	if self.IsUnsafeLuaEnabled then
 		return GetUnsafe(self, key, defaultValue, setIfDoesntExist == true)
@@ -593,6 +633,7 @@ end
 
 -- Remove the specified config key from the saved config data. Will do nothing if the key doesn't exist.
 function XModConfig:Remove(key)
+	-- Doesn't need rootsys sanity check because of the line literally right after this comment (it requires an instance, which won't be given if it's not installed properly)
 	assert(getmetatable(self) == XModConfig, ERR_NOT_INSTANCE:format("Remove", "XModConfig::Instantiate"))
 	if self.IsUnsafeLuaEnabled then
 		RemoveUnsafe(self, key)

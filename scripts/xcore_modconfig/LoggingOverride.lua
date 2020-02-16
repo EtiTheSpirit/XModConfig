@@ -25,11 +25,15 @@
 				NOTE: This REMOVES the trace level argument from error, since stack traces are not possible to grab in Starbound.
 				This means that error("message", 3) will literally output "message 3" to the starbound.log file.
 				
-			void assert(bool requirement, string errorMsg = "Assertion failed")
+			bool assert(bool requirement, string errorMsg = "Assertion failed")
 				Checks if the requirement is met (the value is true). If the value is false, it will print errorMsg via sb.logError.
+				Unlike stock lua, this returns if the assertion was successful or not, since calling lua's default error function doesn't stop scripts.
+				
+				if not assert(requirement, "error message") then return end
 				
 			void assertwarn(bool requirement, string errorMsg = "Assertion failed")
 				Identical to assert but uses sb.logWarn instead of sb.logError
+				This returns if the assertion was successful or not.
 				
 				
 		If a prefix was specified, it will be appended before any messages passed into the functions above.
@@ -90,6 +94,7 @@ function CreateLoggingOverride(prefix)
 		if not requirement then
 			_ENV.warn(prefix .. (msg or "Assertion failed"))
 		end
+		return requirement
 	end
 
 	assert = function(requirement, msg)
@@ -97,6 +102,7 @@ function CreateLoggingOverride(prefix)
 			local msg = msg or "Assertion failed"
 			_ENV.error(msg)
 		end
+		return requirement
 	end
 	
 	return print, warn, error, assertwarn, assert, tostring
