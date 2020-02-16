@@ -410,6 +410,11 @@ function TextBoxFinished(widgetName, widgetData)
 		local max = limits[2] or math.huge
 		local wholeNumOnly = limits[3] == true
 		
+		if min == "-inf" then min = -math.huge end
+		if min == "inf" then min = math.huge end
+		if max == "-inf" then max = -math.huge end
+		if max == "inf" then max = math.huge end
+		
 		local newText = text:gsub(",", ".")
 		local number = tonumber(newText)
 		if not number then error("Number textbox had something that couldn't be turned into a number!") return end
