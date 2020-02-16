@@ -80,11 +80,16 @@
 --]]
 require("/scripts/api/json.lua")
 
+-- https://youtu.be/vXOUp0y9W4w?t=191
+
+local LUA_ERROR = error
 THROW_LUA_ERROR_ON_ERR_AND_ASSERT = true
 TOSTRING_USES_SB_PRINT = true
-local print, warn, error, assertwarn, assert; -- Specify these as locals
+local print, warn, error, assertwarn, assert, tostring; -- Specify these as locals
+require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print, warn, error, assert, and assertwarn
 
 XModConfig = {}
+XModConfig.IsUnsafeLuaEnabled = pcall(os.execute) 
 XModConfig.__index = XModConfig
 XModConfig.__newindex = function (tbl, key, value) 
 	if key ~= "RawJSON" then 
@@ -116,21 +121,6 @@ local ERR_INVALID_TYPE_INVERSE = "Invalid type for JSON parameter '%s' (This par
 
 -- Format params: paramName, notAllowedType
 local ERR_INVALID_TYPE_NULLABLE_INVERSE = "Invalid type for nullable JSON parameter '%s' (This parameter explicitly does not support the use of %s)"
-
--- A late require to the LoggingOverride that employs use of sb.loginfo.
--- This is done because requiring XModConfig can wreak havoc on a chain of init functions that just obliterates everything.
--- Said destruction was caused by sb not existing and it throwing an error.
-local function LateSpecifyLoggingOverrides()
-	if ENV_HAS_LOG_OVERRIDE then return end -- Specified in the override lua
-	require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print, warn, error, assert, and assertwarn
-	print, warn, error, assertwarn, assert = MakeIntoContextualLogger("[XModConfig]") -- This overrides the locals specified up top rather than the entire environment.
-end
-
--- Populates the bare-minimum values required for external access if instantiation is not used (e.g. we're referencing the mod list)
-local function BareBonesSetup()
-	if sb then LateSpecifyLoggingOverrides() end
-	XModConfig.IsUnsafeLuaEnabled = pcall(function () local _ = io.read ~= nil end)
-end
 
 -- Alias function to automatically error out for invalid types.
 local function MandateType(value, targetType, paramName, nullable)
@@ -199,6 +189,7 @@ local function DirExists(path)
 	return FileExists(path.."/")
 end
 
+
 -- spooky scary lua functions
 -- Initialize the system if unsafe lua is enabled.
 -- This locates the user's application data directory, creating a .StarboundModConfigs folder.
@@ -262,9 +253,6 @@ end
 -- This will set various values including if unsafe lua is enabled or not.
 local function InitializationSetup(modName, configContainer)
 	print("Initializing new XModConfig...")
-	-- Unsafe lua is pretty ez.
-	XModConfig.IsUnsafeLuaEnabled = pcall(function () local _ = io.read ~= nil end) -- Starbound throws an exception if this is referenced in safe lua.
-	configContainer.IsUnsafeLuaEnabled = XModConfig.IsUnsafeLuaEnabled
 	
 	-- Ideally the warning in the mod description is enough to deter people, but just in case it isn't, give another logged warning.
 	if XModConfig.IsUnsafeLuaEnabled then
@@ -390,6 +378,7 @@ local function SetUnsafe(self, key, value)
 	self.RawJSON[key] = value
 	
 	WriteJSONToFile(self)
+	print(string.format("Key %s had its value changed to %s", key, tostring(value)))
 end
 
 -- Get config for unsafe lua. Directly reads from a json file.
@@ -433,7 +422,9 @@ local function Set(self, key, value)
 		world.sendEntityMessage(self.EntityId, "setProperty", self.ModName .. key, value)
 	else
 		error("Can't use configs from this context!")
+		return
 	end
+	print(string.format("Key %s had its value changed to %s", key, tostring(value)))
 end
 
 -- Get config data for safe Lua. Uses player.getProperty
@@ -450,6 +441,7 @@ local function Get(self, key, defaultValue, setIfDoesntExist)
 		data = world.sendEntityMessage(self.EntityId, "getProperty", self.ModName .. key):result()
 	else
 		error("Can't use configs from this context!")
+		return
 	end
 	
 	if data ~= nil and defaultValue ~= nil and type(defaultValue) ~= type(data) then
@@ -472,7 +464,7 @@ end
 
 -- Instantiate new config object. The specified mod name must be the same as the mod name patched into XMODCONFIG.config
 function XModConfig:Instantiate(modName)
-	LateSpecifyLoggingOverrides()
+	print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]")
 	if sb == nil and LUA_ERROR ~= nil then
 		LUA_ERROR("ERROR: Cannot call instantiate() before a script's init function has been called! (Global var sb does not exist.)")
 		return
@@ -494,7 +486,11 @@ function XModConfig:Instantiate(modName)
 		local cfgMods = self:GetConfigurableMods().ModsWithConfig
 		local config = cfgMods[modName]
 		assert(config ~= nil, string.format("Could not locate mod name %s in list of configurable mods. Did you specify the correct name? Did you remember to create XMODCONFIG.config.patch?", modName))
-			
+		
+		-- https://youtu.be/vXOUp0y9W4w?t=478
+		-- https://youtu.be/vXOUp0y9W4w?t=478
+		-- https://youtu.be/vXOUp0y9W4w?t=478
+		
 		for index = 1, #config.ConfigInfo do
 			local configData = config.ConfigInfo[index]
 			-- Did I ever tell you what the definition of insanity is?
@@ -502,6 +498,10 @@ function XModConfig:Instantiate(modName)
 			MandateType(configData.key, "string", "key", false)
 			MandateNotType(configData.default, "table", "default", true)
 			MandateType(configData.enforceType, "boolean", "enforceType", true)
+			if configData.enforceType == true and configData.default == nil then
+				error(string.format("Type enforcement for config key %s is on, but it doesn't have a default value to get this type from!", configData.key))
+			end
+			
 			MandateType(configData.limits, "table", "limits", true)
 			if configData.limits ~= nil then
 				local len = #configData.limits
@@ -558,8 +558,7 @@ end
 -- This table has an index added to it called "ModList" which is a list of all the registered mod names.
 function XModConfig:GetConfigurableMods()
 	-- Make sure we're good to go first.
-	-- This function populates the logging overrides and also sets XModConfig.IsUnsafeLuaEnabled
-	BareBonesSetup()
+	if sb then print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]") end
 	
 	local cfg = root.assetJson("/XMODCONFIG.config")
 	local keys = {}
