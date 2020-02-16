@@ -45,8 +45,7 @@ local TEMPLATE_TEXT_BOX = {
 	type = "textbox",
 	position = {168, 4},
 	maxWidth = 50,
-	hAnchor = "right",
-	escapeKey = "NullFunction",
+	escapeKey = "TextBoxFinished",
 	callback = "NullFunction",
 	enterKey = "TextBoxFinished"
 	-- specify regex, hint, and set custom data representing the key this textbox controls.
@@ -402,8 +401,8 @@ function TextBoxFinished(widgetName, widgetData)
 
 	local key = widgetData[1]
 	local targetType = widgetData[2]
-	local text = widget.getText(targetWidget)
-	if targetType == "string" then
+	local text = widget.getText(targetWidget)	
+	if targetType == "text" then
 		-- Nothing really special here.
 		CurrentConfig:Set(key, text)
 	elseif targetType == "number" then
@@ -429,6 +428,8 @@ function TextBoxFinished(widgetName, widgetData)
 		
 		widget.setText(targetWidget, tostring(number)) -- Update the text
 		CurrentConfig:Set(key, number)
+	else
+		warn("Something tried to fire TextBoxFinished, but its targetType (data in the text box) was not recognized! The type given was: " .. tostring(targetType))
 	end
 end
 
