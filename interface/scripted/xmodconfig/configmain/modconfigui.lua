@@ -165,7 +165,7 @@ end
 -- Constructs the basic "container" for config entries, which is a tidy image designed to add some padding between elements in the list, as well as serve as a fairly neat place to put data into.
 -- Since this is called by all other constructors, it returns the name of this container so that it can be added.
 local function ConstructBaseConfigObjectContainer(configInfo, modName, index, isBoolean)
-	print("Constructing new config container!")
+	--print("Constructing new config container!")
 	
 	-- Create the container.
 	local listItem = TEMPLATE_ROOT_CONFIG_LIST_ITEM
@@ -179,7 +179,7 @@ local function ConstructBaseConfigObjectContainer(configInfo, modName, index, is
 	widget.addChild("modconfigs", listItem, name)
 	--table.insert(CurrentConfigPage, {"modconfigs", name, listItem})
 	CurrentConfigPage[name] = CreateParentChildHierarchy("modconfigs", name, listItem)
-	print("Added container to modconfigs. Container: " .. name)
+	--print("Added container to modconfigs. Container: " .. name)
 	------------------------
 	
 	-- Create the config label.
@@ -191,7 +191,7 @@ local function ConstructBaseConfigObjectContainer(configInfo, modName, index, is
 	cfgLabel.value = configInfo.display.name
 	widget.addChild(updatedName, cfgLabel, cfgLabelName)
 	--table.insert(CurrentConfigPage, {updatedName, cfgLabelName, cfgLabel})
-	print("Added config key name label. Label: " .. cfgLabelName)
+	--print("Added config key name label. Label: " .. cfgLabelName)
 	------------------------
 	
 	-- If needed, create the description field.
@@ -206,17 +206,17 @@ local function ConstructBaseConfigObjectContainer(configInfo, modName, index, is
 		widget.addChild(updatedName, helpButton, helpButtonName)
 		widget.setData(helpPageData[3], {configInfo})
 		--table.insert(CurrentConfigPage, {updatedName, helpButtonName, helpButton})
-		print("Added help button to view config description. Button: " .. helpButtonName)
+		--print("Added help button to view config description. Button: " .. helpButtonName)
 	end
 	-------------------------
 	
-	print("Returning name.")
+	--print("Returning name.")
 	return updatedName, name
 end
 
 -- Construct a new textbox designed to store arbitrary strings.
 local function ConstructTextBoxConfig(configInfo, modName, index)
-	print("Constructing stock textbox!")
+	--print("Constructing stock textbox!")
 	local containerName = ConstructBaseConfigObjectContainer(configInfo, modName, index)
 	local thisName = "textBox-" .. modName .. "-" .. configInfo.key
 	
@@ -229,13 +229,12 @@ local function ConstructTextBoxConfig(configInfo, modName, index)
 	
 	widget.addChild(containerName, newTextBox, thisName)
 	widget.setData(pageData[3], {configInfo.key, "text"})
-	--table.insert(CurrentConfigPage, {containerName, thisName, newTextBox})
-	print("Added stock textbox.")
+	--print("Added stock textbox.")
 end
 
 -- Construct a new textbox with its regex limiter set to numbers only.
 local function ConstructNumberConfig(configInfo, modName, index)
-	print("Constructing number textbox!")
+	--print("Constructing number textbox!")
 	local containerName = ConstructBaseConfigObjectContainer(configInfo, modName, index)
 	local thisName = "numberBox-" .. modName .. "-" .. configInfo.key
 	
@@ -257,13 +256,12 @@ local function ConstructNumberConfig(configInfo, modName, index)
 	
 	widget.addChild(containerName, newTextBox, thisName)
 	widget.setData(pageData[3], {configInfo.key, "number", configInfo.limits})
-	--table.insert(CurrentConfigPage, {containerName, thisName, newTextBox})
-	print("Added number textbox.")
+	--print("Added number textbox.")
 end
 
 -- Construct a new checkbox designed to store a boolean.
 local function ConstructBooleanConfig(configInfo, modName, index)
-	print("Constructing boolean config button!")
+	--print("Constructing boolean config button!")
 	local containerName = ConstructBaseConfigObjectContainer(configInfo, modName, index, true)
 	local thisName = "toggleButton-" .. modName .. "-" .. configInfo.key
 	
@@ -287,8 +285,7 @@ local function ConstructBooleanConfig(configInfo, modName, index)
 	
 	widget.addChild(containerName, button, thisName)
 	widget.setData(pageData[3], {configInfo.key, isTrue})
-	--table.insert(CurrentConfigPage, {containerName, thisName, button})
-	print("Added button.")
+	--print("Added button.")
 end
 
 -- You know how long I spent trying to remember another type because I thought something was missing? ffs lol
@@ -314,28 +311,29 @@ end
 -- Displays the configurations for the given mod.
 local function DisplayModConfigsFor(rawData)
 	local modName = rawData.ModName
-	print("Config button for mod [" .. modName .. "] pressed. Populating info...")
+	--print("Config button for mod [" .. modName .. "] pressed. Populating info...")
 	
 	local associatedData = rawData.Data
 	CurrentConfig = XModConfig:Instantiate(modName)
 	
 	widget.setText("modtitle", associatedData.FriendlyName or modName)
 	
-	print("Clearing old mod config page (if needed)")
+	--print("Clearing old mod config page (if needed)")
 	for index, data in pairs(CurrentConfigPage) do
 		widget.removeChild(data[1], data[2])
 	end
 	CurrentConfigPage = {}
 	--widget.removeAllChildren("modconfigs")
 	
-	print("Going through keys...")
+	print("Going through keys for mod [" .. modName .. "]...")
 	for index = 1, #associatedData.ConfigInfo do
 		local configInfo = associatedData.ConfigInfo[index]
 		local valueType = nil
 		if configInfo.enforceType then valueType = type(configInfo.default) end
 		ConstructConfigElement(valueType, configInfo, modName, index)
-		print("Finished constructing new config element of type " .. tostring(valueType) .. " (for key [" .. configInfo.key .. "])")
+		--print("Finished constructing new config element of type " .. tostring(valueType) .. " (for key [" .. configInfo.key .. "])")
 	end
+	print("Done. Populated " .. tostring(#associatedData.ConfigInfo) .. " values.")
 end
 
 -- Creates a button on the left-most list to configure the specific mod.
@@ -354,7 +352,7 @@ local function CreateButtonToConfigMod(modName, associatedData, index)
 	}
 	
 	widget.addChild("modlist", button, buttonName)
-	print("Button " .. buttonName .. " added to mod list children.")
+	print("Button " .. buttonName .. " added to mod list children as a configurable mod.")
 end
 
 -----------------------
@@ -374,14 +372,14 @@ function ToggleButtonClicked(widgetName, widgetData)
 
 	local isTrue = widgetData[2] == true
 	if isTrue then
-		print("Button is true, setting to false.")
+		--print("Button is true, setting to false.")
 		widget.setButtonImages(targetWidget, {
 			base = "/interface/scripted/xmodconfig/configmain/cfgtoggle_false.png",
 			hover = "/interface/scripted/xmodconfig/configmain/cfgtoggle_false.png",
 			pressed = "/interface/scripted/xmodconfig/configmain/cfgtoggle_false.png"
 		})
 	else
-		print("Button is false, setting to true.")
+		--print("Button is false, setting to true.")
 		widget.setButtonImages(targetWidget, {
 			base = "/interface/scripted/xmodconfig/configmain/cfgtoggle_true.png",
 			hover = "/interface/scripted/xmodconfig/configmain/cfgtoggle_true.png",
