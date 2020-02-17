@@ -27,14 +27,9 @@ require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print
 local HasCorruptInstall = nil
 XModConfig = {}
 XModConfig.IsUnsafeLuaEnabled = pcall(os.execute)
+XModConfig.RawJSON = {}
 XModConfig.__index = XModConfig
-XModConfig.__newindex = function (tbl, key, value) 
-	if key ~= "RawJSON" then 
-		error("Can't set value")
-	else
-		rawset(tbl, key, value)
-	end
-end
+XModConfig.__newindex = function (tbl, key, value) error("Can't set value") end
 -- Before one of yall gets all batshit mad at me for using a function for an indexing metamethod
 -- 1: silence, liberal
 -- 2a: any person that's setting things in XModConfig OR in a ConfigContainer is violating standards.
@@ -73,7 +68,7 @@ local function CheckForInstallStatus()
 		return false
 	elseif HasCorruptInstall == false then
 		return true
-	elseif HasCorruptInstall == nil
+	elseif HasCorruptInstall == nil then
 
 		-- If this is true, RootSys is installed.
 		local successfullyGotSBConfig = pcall(function ()
@@ -83,6 +78,19 @@ local function CheckForInstallStatus()
 		-- At the moment, this is the only required library for the API.
 		HasCorruptInstall = not successfullyGotSBConfig
 		return successfullyGotSBConfig
+	end
+end
+
+-- Since RawJSON is readonly (that is, the actual value itself, NOT its contents), this clears it out.
+local function PopulateRawJSON(cfgContainer, newData)
+	-- Clear.
+	for index in pairs(cfgContainer.RawJSON) do
+		cfgContainer.RawJSON[index] = nil
+	end
+	
+	-- Repopulate.
+	for index, value in pairs(newData) do
+		cfgContainer.RawJSON[index] = value
 	end
 end
 
@@ -190,6 +198,7 @@ local function InitializationSetupIfLuaIsUnsafe(modName, configContainer)
 		end
 		
 		local file = io.open(configContainer.ConfigFilePath, "r")
+		-- Don't need to use the safe function here.
 		configContainer.RawJSON = JSONSerializer:JSONDecode(file:read("*a"))
 		file:close()
 	else
@@ -205,6 +214,7 @@ local function InitializationSetupIfLuaIsUnsafe(modName, configContainer)
 			print("Wrote default config file")
 		end
 		local file = io.open(configContainer.ConfigFilePath, "r")
+		-- Don't need to use the safe function here.
 		configContainer.RawJSON = JSONSerializer:JSONDecode(file:read("*a"))
 		file:close()
 	end
@@ -311,7 +321,7 @@ end
 -- Reads JSON data from the config file. Unsafe lua only.
 local function ReadJSONFromFile(self)
 	local hook = io.open(self.ConfigFilePath, "r")
-	self.RawJSON = JSONSerializer:JSONDecode(hook:read("*a"))
+	PopulateRawJSON(self, JSONSerializer:JSONDecode(hook:read("*a")))
 	hook:close()
 end
 
