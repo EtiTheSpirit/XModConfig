@@ -5,6 +5,7 @@ An API allowing starbound mods to be configured.
 - **API Component:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/tree/API)
 - **Root Systems Component:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/tree/RootSys)
 - **GUI Component:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/tree/Interface)
+- **API Documentation:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/wiki)
 
 ## On Steam
 * https://steamcommunity.com/sharedfiles/filedetails/?id=1998921194
