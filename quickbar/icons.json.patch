@@ -1,0 +1,11 @@
+[
+	{
+		"op": "add",
+		"path": "/items/xmodconfig_interface",
+		"value": {
+			"label": "Mod Configuration",
+			"icon": "/interface/configurator.png",
+			"action": [ "pane", "/interface/scripted/xmodconfig/configmain/modconfigui.config" ]
+		}
+	}
+]

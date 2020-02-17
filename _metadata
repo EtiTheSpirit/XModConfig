@@ -1,10 +1,11 @@
 {
   "author" : "Xan the Dragon",
   "description" : "^reset;Offers a GUI to configure mods that employ use of XModConfig",
-  "friendlyName" : "XModCfg ^cyan;Interface^reset;",
+  "friendlyName" : "XModConfig ^cyan;Interface^reset;",
+  "includes" : ["XModCfg_API"],
   "name" : "XModCfg_Interface",
   "path" : ".",
+  "steamContentId" : "1998921194",
   "tags" : "Miscellaneous",
-  "includes" : ["XModCfg_API"],
   "version" : "1.0.0"
 }

@@ -470,8 +470,13 @@ function postinit()
 	
 	widget.setText("windowsubtitle", subtitle)
 	
+	local modList = ConfigurableModsData.ModList
+	if #modList == 0 then
+		widget.setText("modtitle", "No Configurable Mods :(")
+		return
+	end
 	
-	for index = 1, #ConfigurableModsData.ModList do
+	for index = 1, #modList do
 		local modName = ConfigurableModsData.ModList[index]
 		local associatedData = ConfigurableModsData.ModsWithConfig[modName]
 		print("Added mod [" .. modName .. "] to config list.")
