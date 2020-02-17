@@ -48,3 +48,5 @@ You will want to begin by patching XMODCONFIG.config to tell the system what con
 After you have your patch file ready, which should be placed in the root of your mod directory, you can begin implementing the code. This is where the API section comes in handy. Refer to `__example/UseConfig.lua` for a bare-bones usage example for using mod configs in lua. **Please keep in mind that for safe Lua contexts, it only works when there is a player, or there is world + entity where entity is the player.**
 
 After setting up the patch + the in-code handling for various config data, you are done! You've just implemented configurations into your mod.
+
+For more information, check out the docs at https://github.com/XanTheDragon/XModConfig/wiki
