@@ -11,78 +11,7 @@
 		https://github.com/XanTheDragon/XModConfig/blob/DEVELOPER_RESOURCES/scripts/xmodcfg_util/XModConfigProxy.lua
 
 	API:
-		require("scripts/api/XModConfig")
-		Configuration = XModConfig:Instantiate("Your unique mod name here")
-		
-		This will return a *value-synchronised object* (yes, even across separate scripts!) that represents the local mod config.
-		IMPORTANT NOTICE: This object is NOT equal to any other configs! It is simply populated with the same data, so if you call Set("foo", "bar") in one script and Get("foo") in another, it will still return "bar" due to it
-		directly reading and writing to and from player data (or raw config json if unsafe lua is enabled).
-		
-		This constructor will error AND RETURN NIL (MEANING YOU NEED TO TEST THIS) if:
-			- You do not specify a name as a string
-			- The string is empty
-			- The string is only whitespace
-			- The string violates filesystem name rules. The allowed characters are a-z A-Z 0-9 -+_, and the maximum length is 32.
-			- It is called before sb exists in the current context (It must be called after the current environment's init() function finishes.)
-			- XModConfig is not installed properly due to missing components (as of writing, this only means RootSys isn't installed)
-		
-		This object is called a ConfigContainer.
-		
-			Properties of XModConfig:
-				player XModConfig.Player [readonly]
-					A reference to the current active player. This will be nil if ReferenceType is not 0.
-					
-				int XModConfig.EntityId [readonly]
-					A reference to the current active player's entity ID. This will be nil if ReferenceType is not 1.
-					
-				int ReferenceType [readonly]
-					If this is -1, XModConfig is not installed properly and one or more components could not load (as of writing, this only means RootSys isn't installed)						
-					If this is 0, XModConfig.Player was acquired via a direct reference to the player global.
-					If this is 1, XModConfig.Player could not be acquired, but world & entity globals exist and entity references the player.
-					If this is 2, XModConfig.Player could not be acquired, and if entity exists, it's not the player. Config will be unusable here if this is the case.
-					If this is 3, a player nor an entity was required due to unsafe lua being enabled.
-					
-				bool IsUnsafeLuaEnabled [readonly]
-					Will be true if Starbound currently allows unsafe Lua to be executed, exposing groups like io for raw filesystem access.
-					
-			Methods of XModConfig:
-				ConfigContainer Instantiate(string modName)
-					Instantiates a new ConfigContainer from the specified mod name. 
-					This mod name will be appended as a prefix to all keys in player data persistence to disambiguate keys. It is recommended that you keep it simple, but otherwise unique to your mod.
-					This will error if modName is nil, modName is not a string, or modName is empty.
-					This will also error if the current context that this is called from does not contain a reference to either: player, or world&entity (both are needed if player is not available)
-					
-					
-				table GetConfigurableMods()
-					WARNING: If ReferenceType is -1, this will return NIL, NOT A TABLE.
-					Gets the array of configurable mods from the patched XMODCONFIG.config file.
-					This table has a unique structure that looks a bit like this:
-					{
-						["ModsWithConfig"] = {...} -- JSON patches here.
-						["ModList"] = {} -- All of the keys in ModsWithConfig.
-					}
-					
-					
-			Properties of ConfigContainer (Inherits XModConfig properties)
-				string ModName [readonly]
-					The specified name that :Instantiate() was called with.
-					
-				table RawJSON
-					This will be nil if IsUnsafeLuaEnabled is false, and setting it will do nothing in this case.
-					This is only used when unsafe lua is enabled and a custom config file is being referenced. Tampering with it will result in desyncs. Use the Get and Set methods to edit it.
-					
-			Methods of ConfigContainer:
-				void Set(string key, Variant value)
-					Sets the specified config key to contain the specified value via calling player.setProperty
-				
-				Variant Get(string key, [Variant defaultValue = nil], [bool setIfDoesntExist = false])
-					Gets the value associated with the specified config key via calling player.getProperty
-					If this key does not have an associated value or is equal to empty json ({}), it will return nil.
-					If defaultValue is specified, it will return defaultValue if the key does not have a value
-					if setIfDoesntExist is true, this will call Set(key, defaultValue) if the data was nil. This will do nothing if defaultValue is nil.
-					
-				void Remove(string key)
-					Removes the specified config key from the saved config data. This is identical to calling Set(key, nil)
+		https://github.com/XanTheDragon/XModConfig/wiki
 					
 --]]
 require("/scripts/api/json.lua")
@@ -95,6 +24,7 @@ TOSTRING_USES_SB_PRINT = true
 local print, warn, error, assertwarn, assert, tostring; -- Specify these as locals
 require("/scripts/xcore_modconfig/LoggingOverride.lua") -- tl;dr I can use print, warn, error, assert, and assertwarn
 
+local HasCorruptInstall = nil
 XModConfig = {}
 XModConfig.IsUnsafeLuaEnabled = pcall(os.execute)
 XModConfig.__index = XModConfig
@@ -137,18 +67,23 @@ local ERR_ROOTSYS_NOT_INSTALLED = "XModConfig is not installed properly! It is c
 --------------------------------
 
 -- Checks to see if all of the necessary components of XModConfig are installed.
+-- Returns true if they are, false if they are not.
 local function CheckForInstallStatus()
-	-- If this is true, RootSys is installed.
-	local successfullyGotSBConfig = pcall(function ()
-		root.assetJson("/XMODCONFIG.config")
-	end)
-	
-	if not successfullyGotSBConfig then
-		XModConfig.ReferenceType = -1
+	if HasCorruptInstall == true then
+		return false
+	elseif HasCorruptInstall == false then
+		return true
+	elseif HasCorruptInstall == nil
+
+		-- If this is true, RootSys is installed.
+		local successfullyGotSBConfig = pcall(function ()
+			root.assetJson("/XMODCONFIG.config")
+		end)
+		
+		-- At the moment, this is the only required library for the API.
+		HasCorruptInstall = not successfullyGotSBConfig
+		return successfullyGotSBConfig
 	end
-	
-	-- At the moment, this is the only required library for the API.
-	return successfullyGotSBConfig
 end
 
 -- Alias function to automatically error out for invalid types.
@@ -273,7 +208,6 @@ local function InitializationSetupIfLuaIsUnsafe(modName, configContainer)
 		configContainer.RawJSON = JSONSerializer:JSONDecode(file:read("*a"))
 		file:close()
 	end
-	XModConfig.ReferenceType = 3
 	configContainer.ReferenceType = 3
 	print("Successfully populated JSON.")
 end
@@ -297,8 +231,6 @@ local function InitializationSetup(modName, configContainer)
 		if player ~= nil then
 			-- YIPPIEKEYHEEAYPEIYEKAIYO
 			print("Player exists in current context! Grabbing a direct reference.")
-			XModConfig.Player = player
-			XModConfig.ReferenceType = 0
 			configContainer.Player = player
 			configContainer.ReferenceType = 0
 			
@@ -310,8 +242,6 @@ local function InitializationSetup(modName, configContainer)
 				local promise = world.sendEntityMessage(entity.id(), "isThisMyPlayer")
 				if promise:succeeded() then
 					print("It is! Using an indirect reference.")
-					XModConfig.EntityId = entity.id()
-					XModConfig.ReferenceType = 1
 					configContainer.EntityId = entity.id()
 					configContainer.ReferenceType = 1
 					return
@@ -328,7 +258,6 @@ local function InitializationSetup(modName, configContainer)
 				-- Both sides were stingy about it so I'm just gonna do it this way. I'm a solid 60% sorry if this kind of code bothers you. It'd bother me too.
 				
 				error("here lies world.players -- he ran fast, and ceased to exist. (Config errored and the player could not be located)")
-				XModConfig.ReferenceType = 2
 				configContainer.ReferenceType = 2
 				return
 			end
@@ -343,8 +272,6 @@ local function InitializationSetup(modName, configContainer)
 				local promise = world.sendEntityMessage(entity.id(), "isThisMyPlayer")
 				if promise:succeeded() then
 					print("Found me!")
-					XModConfig.EntityId = entity.id()
-					XModConfig.ReferenceType = 1
 					configContainer.EntityId = entity.id()
 					configContainer.ReferenceType = 1
 					return
@@ -352,12 +279,10 @@ local function InitializationSetup(modName, configContainer)
 			end
 			
 			error("Cannot reference configs from this context. Could not find the player from entity ID alone, since no applicable ID could be located.")
-			XModConfig.ReferenceType = 2
 			configContainer.ReferenceType = 2
 			
 		-- a
 		else
-			XModConfig.ReferenceType = 2
 			configContainer.ReferenceType = 2
 			-- WHAT IS EXISTENCE?!
 			-- HELP!!!!
@@ -513,7 +438,7 @@ function XModConfig:Instantiate(modName)
 	setmetatable(object, XModConfig)
 	
 	-- Late data population: Set up the default data / load the existing data.
-	if self.ReferenceType ~= 2 then	
+	if object.ReferenceType ~= 2 then
 		-- Let's populate our data.
 		local cfgMods = self:GetConfigurableMods().ModsWithConfig
 		local config = cfgMods[modName]
@@ -591,7 +516,7 @@ end
 -- This table has an index added to it called "ModList" which is a list of all the registered mod names.
 function XModConfig:GetConfigurableMods()
 	-- Make sure we're good to go first.
-	if self.ReferenceType == -1 or not CheckForInstallStatus() then
+	if not CheckForInstallStatus() then
 		error(ERR_ROOTSYS_NOT_INSTALLED)
 		return
 	end
