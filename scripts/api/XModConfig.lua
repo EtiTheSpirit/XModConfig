@@ -57,6 +57,13 @@ local ERR_INVALID_TYPE_NULLABLE_INVERSE = "Invalid type for nullable JSON parame
 -- Error for if this script exists but it's not installed properly due to root systems missing.
 local ERR_ROOTSYS_NOT_INSTALLED = "XModConfig is not installed properly! It is currently missing the following required components: XModCfg_RootSys (Root Systems)"
 
+-----------------------
+---- STATIC MEMORY ----
+-----------------------
+
+-- A cached value for XModConfig:GetConfigurableMods()
+local ConfigurableModsCache = nil
+
 --------------------------------
 ---- CORE UTILITY FUNCTIONS ----
 --------------------------------
@@ -81,19 +88,6 @@ local function CheckForInstallStatus()
 	end
 end
 
--- Since RawJSON is readonly (that is, the actual value itself, NOT its contents), this clears it out.
-local function PopulateRawJSON(cfgContainer, newData)
-	-- Clear.
-	for index in pairs(cfgContainer.RawJSON) do
-		cfgContainer.RawJSON[index] = nil
-	end
-	
-	-- Repopulate.
-	for index, value in pairs(newData) do
-		cfgContainer.RawJSON[index] = value
-	end
-end
-
 -- Alias function to automatically error out for invalid types.
 local function MandateType(value, targetType, paramName, nullable)
 	if nullable and value == nil then return end
@@ -106,6 +100,65 @@ local function MandateNotType(value, targetType, paramName, nullable)
 	if nullable and value == nil then return end
 	local fmt = nullable and ERR_INVALID_TYPE_NULLABLE_INVERSE or ERR_INVALID_TYPE_INVERSE
 	assert(type(value) ~= targetType, fmt:format(paramName or "ERR_NO_PARAM_NAME", targetType))
+end
+
+-- Verifies the integrity of the given config data.
+local function VerifyIntegrityOf(configData)
+	-- Did I ever tell you what the definition of insanity is?
+	-- MandateType(value, requiredType, paramName, nullable)
+	MandateType(configData.key, "string", "key", false)
+	MandateNotType(configData.default, "table", "default", true)
+	MandateType(configData.enforceType, "boolean", "enforceType", true)
+	if configData.enforceType == true and configData.default == nil then
+		error(string.format("Type enforcement for config key %s is on, but it doesn't have a default value to get this type from! Switching enforceType off.", configData.key))
+		configData.enforceType = false
+	end
+	
+	MandateType(configData.limits, "table", "limits", true)
+	if configData.limits ~= nil then
+		local len = #configData.limits
+		if not assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.") then return end
+		
+		-- A bit of a hack but...
+		if configData.limits[1] == "inf" then configData.limits[1] = math.huge end
+		if configData.limits[1] == "-inf" then configData.limits[1] = -math.huge end
+		if configData.limits[2] == "inf" then configData.limits[2] = math.huge end
+		if configData.limits[2] == "-inf" then configData.limits[2] = -math.huge end
+		
+		MandateType(configData.limits[1], "number", "limits[1]", false)
+		MandateType(configData.limits[2], "number", "limits[2]", false)
+		MandateType(configData.limits[3], "boolean", "limits[3]", true)
+	end
+	MandateType(configData.display, "table", "display", false)
+	MandateType(configData.display.name, "string", "display.name", false)
+	MandateType(configData.display.description, "string", "display.description", true)
+	
+	return configData
+end
+
+-- Iterates through all given patches to XMODCONFIG.config and ensures all values are compliant.
+-- This also looks for instances where limits[] has a string value of "-inf" or "inf" and replaces it with -math.huge or math.huge respectively.
+local function SanityCheckConfigInfoValues()
+	for modName, configInfoContainer in pairs(ConfigurableModsCache.ModsWithConfig) do
+		for index = 1, #configInfoContainer.ConfigInfo do
+			local configData = VerifyIntegrityOf(configInfoContainer.ConfigInfo[index])
+			configInfoContainer.ConfigInfo[index] = configData
+		end
+		ConfigurableModsCache.ModsWithConfig[modName].ConfigInfo = configInfoContainer
+	end
+end
+
+-- Since RawJSON is readonly (that is, the actual value itself, NOT its contents), this clears it out.
+local function PopulateRawJSON(cfgContainer, newData)
+	-- Clear.
+	for index in pairs(cfgContainer.RawJSON) do
+		cfgContainer.RawJSON[index] = nil
+	end
+	
+	-- Repopulate.
+	for index, value in pairs(newData) do
+		cfgContainer.RawJSON[index] = value
+	end
 end
 
 -- Verifies the integrity of the mod name to ensure that it is safe for all filesystems.
@@ -459,38 +512,10 @@ function XModConfig:Instantiate(modName)
 		-- https://youtu.be/vXOUp0y9W4w?t=478
 		
 		for index = 1, #config.ConfigInfo do
-			local configData = config.ConfigInfo[index]
-			-- Did I ever tell you what the definition of insanity is?
-			-- MandateType(value, requiredType, paramName, nullable)
-			MandateType(configData.key, "string", "key", false)
-			MandateNotType(configData.default, "table", "default", true)
-			MandateType(configData.enforceType, "boolean", "enforceType", true)
-			if configData.enforceType == true and configData.default == nil then
-				error(string.format("Type enforcement for config key %s is on, but it doesn't have a default value to get this type from!", configData.key))
-				return
-			end
-			
-			MandateType(configData.limits, "table", "limits", true)
-			if configData.limits ~= nil then
-				local len = #configData.limits
-				if not assert(len == 2 or len == 3, "Invalid length for JSON parameter 'limits' - Expected a length of 2 or 3.") then return end
-				
-				-- A bit of a hack but...
-				if configData.limits[1] == "inf" then configData.limits[1] = math.huge end
-				if configData.limits[1] == "-inf" then configData.limits[1] = -math.huge end
-				if configData.limits[2] == "inf" then configData.limits[2] = math.huge end
-				if configData.limits[2] == "-inf" then configData.limits[2] = -math.huge end
-				
-				MandateType(configData.limits[1], "number", "limits[1]", false)
-				MandateType(configData.limits[2], "number", "limits[2]", false)
-				MandateType(configData.limits[3], "boolean", "limits[3]", true)
-			end
-			MandateType(configData.display, "table", "display", false)
-			MandateType(configData.display.name, "string", "display.name", false)
-			MandateType(configData.display.description, "string", "display.description", true)
+			local configData, success = VerifyIntegrityOf(config.ConfigInfo[index])
+			if not success then return end
 			
 			-- If we've made it here, config data is OK!
-			
 			local value = object:Get(configData.key, configData.default, true)
 			if type(value) ~= type(configData.default) and configData.default ~= nil and configData.enforceType == true then
 				warn("Type mismatch for the stored config data in key %s and the default value in the mod's config data specification! Since this key enforces its type, the config data under this key will be set to the default value.")
@@ -533,6 +558,10 @@ function XModConfig:GetConfigurableMods()
 	
 	if sb then print, warn, error, assertwarn, assert, tostring = CreateLoggingOverride("[XModConfig]") end
 	
+	if ConfigurableModsCache then
+		return ConfigurableModsCache
+	end
+	
 	local cfg = root.assetJson("/XMODCONFIG.config")
 	local keys = {}
 	for key in pairs(cfg.ModsWithConfig) do
@@ -541,7 +570,11 @@ function XModConfig:GetConfigurableMods()
 		-- ^ Sometimes this might be called before init which is supposed to be safe for this function, so worst case scenario it's not and the condition up top fails.
 	end
 	cfg.ModList = keys
-	return cfg
+	
+	ConfigurableModsCache = cfg
+	SanityCheckConfigInfoValues()
+	
+	return ConfigurableModsCache
 end
 
 -- Set the specified key to the specified value.
