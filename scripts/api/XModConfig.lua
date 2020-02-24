@@ -572,7 +572,7 @@ function XModConfig:GetConfigurableMods()
 	cfg.ModList = keys
 	
 	ConfigurableModsCache = cfg
-	SanityCheckConfigInfoValues()
+	-- SanityCheckConfigInfoValues()
 	
 	return ConfigurableModsCache
 end
