@@ -155,7 +155,7 @@ local function ShowConfigDescription(config)
 	local configTooltip = root.assetJson("/interface/scripted/xmodconfig/configmain/configdesc/configdesc.config")
 		
 	configTooltip.gui.configtitle.title = config.display.name
-	configTooltip.gui.configtitle.subtitle = "Configuration Value"
+	configTooltip.gui.configtitle.subtitle = "Configuration Info - Esc to close"
 	configTooltip.gui.configdesc.value = config.display.description
 	
 	player.interact("ScriptPane", configTooltip, player.id())
@@ -314,6 +314,7 @@ local function DisplayModConfigsFor(rawData)
 	
 	local associatedData = rawData.Data
 	CurrentConfig = XModConfig:Instantiate(modName)
+	-- print(tostring(CurrentConfig))
 	
 	widget.setText("modtitle", associatedData.FriendlyName or modName)
 	
@@ -460,12 +461,19 @@ function postinit()
 		--widget.setVisible("windowtitle_safe", false)
 		--widget.setVisible("windowtitle_unsafe", true)
 		print("Setting subtitle to reflect unsafe lua.")
-		subtitle = "^#BF332E;Unsafe Lua is ^#ED3D37;enabled ^#BF332E;-- All configs are stored globally."
+		subtitle = "^#BF332E;Unsafe Lua is ^#ED3D37;ON ^#BF332E;-- Configs: ^orange;"
+		
+		if XModConfig:IsWindows() then
+			subtitle = subtitle .. "%appdata%\\.StarboundModConfigs\\<MOD_NAME_HERE>\\config.cfg"
+		else
+			subtitle = subtitle .. "~/.StarboundModConfigs/<MOD_NAME_HERE>/config.cfg"
+		end
+		
 	else
 		--widget.setVisible("windowtitle_safe", true)
 		--widget.setVisible("windowtitle_unsafe", false)
 		print("Setting subtitle to reflect safe lua.")
-		subtitle = "^#B9B5B2;Unsafe Lua is ^#D9D4D0;disabled ^#B9B5B2;-- All configs are stored per-character."
+		subtitle = "^#B9B5B2;Unsafe Lua is ^#D9D4D0;OFF ^#B9B5B2;-- All configs are stored per-character."
 	end
 	
 	widget.setText("windowsubtitle", subtitle)
