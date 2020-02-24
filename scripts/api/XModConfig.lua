@@ -144,7 +144,7 @@ local function SanityCheckConfigInfoValues()
 			local configData = VerifyIntegrityOf(configInfoContainer.ConfigInfo[index])
 			configInfoContainer.ConfigInfo[index] = configData
 		end
-		ConfigurableModsCache.ModsWithConfig[modName].ConfigInfo = configInfoContainer
+		ConfigurableModsCache.ModsWithConfig[modName] = configInfoContainer
 	end
 end
 
@@ -572,7 +572,7 @@ function XModConfig:GetConfigurableMods()
 	cfg.ModList = keys
 	
 	ConfigurableModsCache = cfg
-	-- SanityCheckConfigInfoValues()
+	SanityCheckConfigInfoValues()
 	
 	return ConfigurableModsCache
 end
