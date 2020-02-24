@@ -139,10 +139,11 @@ end
 -- Iterates through all given patches to XMODCONFIG.config and ensures all values are compliant.
 -- This also looks for instances where limits[] has a string value of "-inf" or "inf" and replaces it with -math.huge or math.huge respectively.
 local function SanityCheckConfigInfoValues()
+	-- ConfigurableModsCache contains ModsWithConfig and ModList.
 	for modName, configInfoContainer in pairs(ConfigurableModsCache.ModsWithConfig) do
+		-- Go through ModsWithConfig. Keys are mod names, values are {FriendlyName = text, ConfigInfo = {}}
 		for index = 1, #configInfoContainer.ConfigInfo do
-			local configData = VerifyIntegrityOf(configInfoContainer.ConfigInfo[index])
-			configInfoContainer.ConfigInfo[index] = configData
+			VerifyIntegrityOf(configInfoContainer.ConfigInfo[index])
 		end
 		ConfigurableModsCache.ModsWithConfig[modName] = configInfoContainer
 	end
@@ -213,7 +214,6 @@ local function DirExists(path)
 	-- "/" works on both Unix and Windows
 	return FileExists(path.."/")
 end
-
 
 -- spooky scary lua functions
 -- Initialize the system if unsafe lua is enabled.
@@ -503,7 +503,9 @@ function XModConfig:Instantiate(modName)
 	-- Late data population: Set up the default data / load the existing data.
 	if object.ReferenceType ~= 2 then
 		-- Let's populate our data.
-		local cfgMods = self:GetConfigurableMods().ModsWithConfig
+		local allMods = self:GetConfigurableMods()
+		-- print(JSONSerializer:JSONEncode(allMods))
+		local cfgMods = allMods.ModsWithConfig
 		local config = cfgMods[modName]
 		if not assert(config ~= nil, string.format("Could not locate mod name %s in list of configurable mods. Did you specify the correct name? Did you remember to create XMODCONFIG.config.patch?", modName)) then return end
 		
@@ -512,8 +514,7 @@ function XModConfig:Instantiate(modName)
 		-- https://youtu.be/vXOUp0y9W4w?t=478
 		
 		for index = 1, #config.ConfigInfo do
-			local configData, success = VerifyIntegrityOf(config.ConfigInfo[index])
-			if not success then return end
+			local configData = config.ConfigInfo[index]
 			
 			-- If we've made it here, config data is OK!
 			local value = object:Get(configData.key, configData.default, true)
@@ -545,6 +546,13 @@ function XModConfig:Instantiate(modName)
 	end
 	
 	return object
+end
+
+-- Returns nil if unsafe lua is inactive and this value cannot be acquired. Returns true if the current OS is Windows, false if it is not (OSX or Linux)
+function XModConfig:IsWindows()
+	self.IsUnsafeLuaEnabled = pcall(function () os.getenv("windir") end)
+	if not self.IsUnsafeLuaEnabled then return end
+	return os.getenv("windir") ~= nil
 end
 
 -- Returns a list of mods that patch /XMODCONFIG.config and add their name + configurable properties to the configurable mods list.
