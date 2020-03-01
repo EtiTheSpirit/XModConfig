@@ -37,8 +37,8 @@ function TryGetXModConfig()
 		XMODCONFIG_IS_INSTALLED = false
 		if sb then 
 			sb.logWarn("If an AssetException was thrown above reporting \"No such asset '/scripts/api/XModConfig.lua'\", IGNORE THE ERROR. An error is COMPLETELY EXPECTED to occur if the user does not have XModConfig installed.\n\n >>>>> THIS ERROR DOES NOT TERMINATE SCRIPT EXECUTION. DO NOT REPORT IT AS A BUG TO YOUR MOD AUTHOR. <<<<<\n >>>>> THIS ERROR DOES NOT TERMINATE SCRIPT EXECUTION. DO NOT REPORT IT AS A BUG TO YOUR MOD AUTHOR. <<<<<\n >>>>> THIS ERROR DOES NOT TERMINATE SCRIPT EXECUTION. DO NOT REPORT IT AS A BUG TO YOUR MOD AUTHOR. <<<<<\n")
+			sb.logWarn("If you report it anyway, please refer to https://youtu.be/CGnYWBJHRzM?t=46\n\n")
 		end
-		sb.logWarn("If you report it anyway, please refer to https://youtu.be/CGnYWBJHRzM?t=46\n\n")
 	end
 	
 	if sb then
