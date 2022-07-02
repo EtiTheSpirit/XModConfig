@@ -1,6 +1,9 @@
 # XModConfig
 An API allowing starbound mods to be configured.
 
+# Notice: Development has ceased!
+Sorry to stop half way through. Modding starbound is the kind of thing I would unironically recommend to a masochist, and then the masochist would do it because they wanted to kill themselves, not because they enjoy the pain. Feel free to fork and continue yourself, but I'm throwing in the towel.
+
 **See the branches of this repo for components.**
 - **API Component:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/tree/API)
 - **Root Systems Component:** [CLICK HERE](https://github.com/XanTheDragon/XModConfig/tree/RootSys)
